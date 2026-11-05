@@ -138,8 +138,8 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
     <div class="grid">
       <div class="card"><span class="eyebrow">Nog te sparen</span><div class="v num" id="left"></div></div>
       <div class="card"><span class="eyebrow">Dagen over</span><div class="v num" id="days"></div></div>
-      <div class="card"><span class="eyebrow">Per week</span><div class="v num" id="perweek"></div></div>
-      <div class="card"><span class="eyebrow">Per maand</span><div class="v num" id="permonth"></div></div>
+      <div class="card"><span class="eyebrow">Per salaris</span><div class="v num" id="permonth"></div></div>
+      <div class="card"><span class="eyebrow">Volgend salaris</span><div class="v num" id="nextpay"></div></div>
     </div>
     <section>
       <h2>Je voortgang</h2>
@@ -217,7 +217,7 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
       <div class="sumrow"><span>Vast inkomen</span><span class="num" id="b-inc"></span></div>
       <div class="sumrow"><span>Vaste lasten</span><span class="num" id="b-fixed"></span></div>
       <div class="sumrow" id="b-diff-row"><span>Verschil</span><span class="num" id="b-diff"></span></div>
-      <div class="sumrow"><span>Nodig voor je spaardoel</span><span class="num" id="needmonth"></span></div>
+      <div class="sumrow"><span>Sparen per salaris</span><span class="num" id="needmonth"></span></div>
       <div class="sumrow"><span>Uit je salaris nodig</span><span class="num" id="fromsalary"></span></div>
       <div class="sumrow hint" id="verdict"></div>
       <div class="note" id="salary-note"></div>
@@ -257,9 +257,10 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
 
   <div class="view" id="v-schema" hidden>
     <section>
-      <h2>Schema per week</h2>
-      <div class="note">Zo ver moet je zijn aan het einde van elke week.</div>
+      <h2>Schema per salaris</h2>
+      <div class="note">Je krijgt op de 28e betaald. Zet op elke salarisdag dit bedrag meteen apart, dan haal je €7.000 op 29 januari.</div>
       <ul class="weeks" id="weeks"></ul>
+      <div class="sumrow hint" id="payhint"></div>
     </section>
   </div>
 </main>
@@ -315,10 +316,12 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
   function $(id) { return document.getElementById(id); }
   function days(a, b) { return Math.round((b - a) / DAY); }
   function total() { return (Number(state.start) || 0) + state.items.reduce(function (s, i) { return s + i.amount; }, 0); }
+  var PAYDAYS = [d(2026, 11, 28), d(2026, 12, 28), d(2027, 1, 28)];
+  function perPay() { return Math.max(0, (GOAL - (Number(state.start) || 0)) / PAYDAYS.length); }
   function planAt(date) {
-    var t = Math.min(1, Math.max(0, days(START, date) / days(START, END)));
-    var s = Number(state.start) || 0;
-    return s + (GOAL - s) * t;
+    var s = Number(state.start) || 0, n = 0;
+    PAYDAYS.forEach(function (p) { if (date >= p) n++; });
+    return Math.min(GOAL, s + perPay() * n);
   }
   function savedAt(date) {
     var s = Number(state.start) || 0;
@@ -377,7 +380,9 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
       ctx.fillText(dfmt.format(dt), X(dt) + (k === 0 ? -6 : (k === arr.length - 1 ? 6 : 0)), y1 + 6);
     });
     ctx.strokeStyle = muted; ctx.lineWidth = 2; ctx.setLineDash([6, 5]);
-    ctx.beginPath(); ctx.moveTo(X(START), Y(planAt(START))); ctx.lineTo(X(END), Y(GOAL)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(X(START), Y(planAt(START)));
+    PAYDAYS.forEach(function (p) { ctx.lineTo(X(p), Y(planAt(new Date(p.getTime() - DAY)))); ctx.lineTo(X(p), Y(planAt(p))); });
+    ctx.lineTo(X(END), Y(GOAL)); ctx.stroke(); ctx.setLineDash([]);
     var pts = [{ date: START, v: Number(state.start) || 0 }];
     state.items.slice().sort(function (a, b) { return new Date(a.date) - new Date(b.date); }).forEach(function (i) {
       var dt = new Date(i.date); if (dt < START) dt = START; if (dt > END) dt = END;
@@ -459,14 +464,16 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
     var st = $("status"), diffPlan = saved - plan;
     if (saved >= GOAL) { st.textContent = "Doel bereikt!"; st.className = "pill good"; }
     else if (t < START) { st.textContent = "Het schema start op 5 november"; st.className = "pill good"; }
+    else if (diffPlan < 1) { st.textContent = "Precies op schema"; st.className = "pill good"; }
     else if (diffPlan >= 0) { st.textContent = "Voor op schema: " + fmt.format(diffPlan) + " voor"; st.className = "pill good"; }
     else { st.textContent = "Achter op schema: " + fmt.format(-diffPlan) + " te weinig"; st.className = "pill warn"; }
 
-    var perMonth = daysLeft > 0 ? left / (daysLeft / 30.44) : left;
+    var paysLeft = PAYDAYS.filter(function (p) { return p >= t; });
+    var perMonth = paysLeft.length ? left / paysLeft.length : left;
     $("left").textContent = fmt.format(left);
     $("days").textContent = daysLeft;
-    $("perweek").textContent = daysLeft > 0 ? fmt.format(left / (daysLeft / 7)) : fmt.format(left);
     $("permonth").textContent = fmt.format(perMonth);
+    $("nextpay").textContent = paysLeft.length ? dfmt.format(paysLeft[0]) : "–";
 
     /* Stortingen */
     var list = $("list"); list.innerHTML = "";
@@ -541,7 +548,7 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
     else v.textContent = "Je vaste lasten zijn " + fmt.format(-diff) + " hoger dan je vaste inkomen.";
     $("salary-note").textContent = saved >= GOAL ? "" :
       "Dit is " + fmt.format(perMonth) + " sparen" + (diff < 0 ? " plus " + fmt.format(-diff) + " om je vaste lasten rond te krijgen" : "") +
-      ". Wat je van je salaris daarna overhoudt, is voor boodschappen en de rest.";
+      ". Wat je van je salaris daarna overhoudt, is voor boodschappen en de rest tot de volgende 28e.";
 
     var monthsLeft = daysLeft / 30.44;
     var sv = $("savings"); sv.innerHTML = "";
@@ -565,16 +572,30 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
 
     /* Schema */
     var wk = $("weeks"); wk.innerHTML = "";
-    var n = Math.ceil(days(START, END) / 7);
-    for (var i = 1; i <= n; i++) {
-      var end = new Date(START.getTime() + Math.min(days(START, END), i * 7) * DAY);
-      var target = planAt(end);
+    var li0 = document.createElement("li"); li0.className = "done";
+    var l0 = document.createElement("span"); l0.textContent = "Start · 5 nov";
+    var r0 = document.createElement("span"); r0.className = "num"; r0.textContent = fmt.format(Number(state.start) || 0);
+    li0.appendChild(l0); li0.appendChild(r0); wk.appendChild(li0);
+    PAYDAYS.forEach(function (p, i) {
+      var target = planAt(p), have = savedAt(new Date(p.getTime() + DAY - 1));
       var li2 = document.createElement("li");
-      if (end < t) li2.className = "done"; else if (new Date(end.getTime() - 7 * DAY) <= t) li2.className = "now";
-      var l = document.createElement("span"); l.textContent = "Week " + i + " · t/m " + dfmt.format(end);
+      var reached = p <= t && have >= target - 0.5;
+      if (p < t) li2.className = reached ? "done" : ""; else if (!paysLeft.length || p.getTime() === paysLeft[0].getTime()) li2.className = "now";
+      var meta = document.createElement("div"); meta.className = "meta";
+      var l = document.createElement("span"); l.textContent = "Salaris " + (i + 1) + " · " + dfmt.format(p);
+      var sm = document.createElement("small");
+      sm.textContent = p < t ? (reached ? "gehaald" : "niet gehaald: je had " + fmt.format(have)) : "zet " + fmt.format(perPay()) + " apart";
+      meta.appendChild(l); meta.appendChild(sm);
       var r = document.createElement("span"); r.className = "num"; r.textContent = fmt.format(Math.round(target));
-      li2.appendChild(l); li2.appendChild(r); wk.appendChild(li2);
-    }
+      li2.appendChild(meta); li2.appendChild(r); wk.appendChild(li2);
+    });
+    var lie = document.createElement("li");
+    var le = document.createElement("span"); le.textContent = "Doel · 29 jan";
+    var re = document.createElement("span"); re.className = "num"; re.textContent = fmt.format(GOAL);
+    lie.appendChild(le); lie.appendChild(re); wk.appendChild(lie);
+    $("payhint").textContent = paysLeft.length
+      ? "Je loopt " + (diffPlan >= 0 ? "voor" : "achter") + ", dus per salaris is nu " + fmt.format(perMonth) + " nodig (" + paysLeft.length + " salaris" + (paysLeft.length > 1 ? "sen" : "") + " te gaan)."
+      : "Geen salarisdagen meer voor 29 januari.";
 
     if (!$("v-overzicht").hidden) drawChart();
   }
