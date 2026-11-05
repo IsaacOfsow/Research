@@ -117,7 +117,7 @@ li .meta small { color: var(--muted); overflow-wrap: anywhere; }
   <section>
     <h2>Startbedrag</h2>
     <label for="start">Wat had je al op 5 november? (€)
-      <input id="start" type="number" inputmode="decimal" step="0.01" min="0" value="0">
+      <input id="start" type="number" inputmode="decimal" step="0.01" min="0" value="1250">
     </label>
     <div class="empty">Dit telt mee in het totaal en in je schema.</div>
   </section>
@@ -143,9 +143,9 @@ li .meta small { color: var(--muted); overflow-wrap: anywhere; }
   var fmt2 = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" });
   var dfmt = new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short" });
   var KEY = "spaardoel-v1";
-  var state = { start: 0, items: [] };
+  var state = { start: 1250, items: [] };
   try { var raw = localStorage.getItem(KEY); if (raw) state = JSON.parse(raw); } catch (e) {}
-  if (!state || !Array.isArray(state.items)) state = { start: 0, items: [] };
+  if (!state || !Array.isArray(state.items)) state = { start: 1250, items: [] };
   function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
   function today() { var n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
   function $(id) { return document.getElementById(id); }
