@@ -80,7 +80,10 @@ li .meta small { color: var(--muted); overflow-wrap: anywhere; }
 .fixed li.off .meta { color: var(--muted); text-decoration: line-through; }
 .fixed .meta small { text-decoration: none; }
 .fixed .actions { display: flex; gap: 6px; flex-shrink: 0; }
-.fixed .amt { font-weight: 600; white-space: nowrap; }
+.fixed .amt { width: 92px; padding: 8px; text-align: right; font-weight: 600; }
+.fixed .amt.missing { border-color: var(--warn); }
+.sumrow.neg { color: var(--warn); }
+.sumrow.pos { color: var(--good); }
 .sumrow { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); font-weight: 600; }
 .sumrow.hint { font-weight: 400; color: var(--muted); font-size: 14px; }
 .tag { display: inline-block; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; margin-left: 6px; vertical-align: middle; }
@@ -133,9 +136,9 @@ li .meta small { color: var(--muted); overflow-wrap: anywhere; }
 
   <section>
     <h2>Vaste lasten per maand</h2>
-    <div class="note">Gevonden in je mail op 5 november. Zet iets uit als het niet meer loopt, verwijder het, of voeg toe wat ontbreekt (huur, zorgverzekering, telefoon, energie).</div>
+    <div class="note">Bedragen kun je direct in de lijst aanpassen. Een oranje vakje betekent: bedrag nog invullen. Zet iets uit als het niet meer loopt.</div>
     <ul class="fixed" id="fixedlist"></ul>
-    <div class="sumrow"><span>Totaal actieve vaste lasten</span><span class="num" id="fixedtotal"></span></div>
+    <div class="sumrow"><span>Totaal vaste lasten</span><span class="num" id="fixedtotal"></span></div>
     <form id="fixedform">
       <div class="row">
         <label for="fname">Naam<input id="fname" type="text" maxlength="40" placeholder="bijv. Huur" required></label>
@@ -146,11 +149,24 @@ li .meta small { color: var(--muted); overflow-wrap: anywhere; }
   </section>
 
   <section>
-    <h2>Wat blijft er over?</h2>
-    <label for="income">Inkomen per maand (€, netto)
-      <input id="income" type="number" inputmode="decimal" step="1" min="0" placeholder="bijv. 1800">
-    </label>
-    <div class="sumrow"><span>Over na vaste lasten</span><span class="num" id="leftover"></span></div>
+    <h2>Vast inkomen per maand</h2>
+    <div class="note">Zonder salaris. Alleen wat elke maand vast binnenkomt.</div>
+    <ul class="fixed" id="inclist"></ul>
+    <div class="sumrow"><span>Totaal vast inkomen</span><span class="num" id="inctotal"></span></div>
+    <form id="incform">
+      <div class="row">
+        <label for="iname">Naam<input id="iname" type="text" maxlength="40" placeholder="bijv. Huurtoeslag" required></label>
+        <label for="iamount">Per maand (€)<input id="iamount" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="bijv. 200" required></label>
+      </div>
+      <button type="submit">Inkomen toevoegen</button>
+    </form>
+  </section>
+
+  <section>
+    <h2>Balans</h2>
+    <div class="sumrow"><span>Vast inkomen</span><span class="num" id="b-inc"></span></div>
+    <div class="sumrow"><span>Vaste lasten</span><span class="num" id="b-fixed"></span></div>
+    <div class="sumrow" id="b-diff-row"><span>Verschil per maand</span><span class="num" id="b-diff"></span></div>
     <div class="sumrow"><span>Nodig voor je spaardoel</span><span class="num" id="needmonth"></span></div>
     <div class="sumrow hint" id="verdict"></div>
   </section>
@@ -183,13 +199,22 @@ li .meta small { color: var(--muted); overflow-wrap: anywhere; }
     { id: 4, name: "Spotify Premium", amount: 13.99, on: true, src: "sinds oktober € 13,99" },
     { id: 5, name: "Snapchat+", amount: 3.99, on: true, src: "via Apple, 28e van de maand" },
     { id: 6, name: "iCloud+ 200 GB", amount: 2.99, on: true, src: "via Apple, 22e van de maand" },
-    { id: 7, name: "Coursera", amount: 42.00, on: false, src: "betaling mislukt sinds 24 okt" }
+    { id: 7, name: "Coursera", amount: 42.00, on: false, src: "betaling mislukt sinds 24 okt" },
+    { id: 8, name: "Basic-Fit", amount: 34.99, on: true, src: "2e van de maand" },
+    { id: 9, name: "Zorgverzekering", amount: 0, on: true, src: "vul je maandpremie in" }
   ];
-  var state = { start: 1250, items: [], fixed: DEFAULT_FIXED.slice(), income: 0 };
+  var DEFAULT_INC = [
+    { id: 101, name: "DUO studiefinanciering", amount: 0, on: true, src: "vul het maandbedrag in" },
+    { id: 102, name: "Zorgtoeslag", amount: 0, on: true, src: "vul het maandbedrag in" }
+  ];
+  function fresh() { return { start: 1250, items: [], fixed: DEFAULT_FIXED.slice(), incomes: DEFAULT_INC.slice() }; }
+  var state = fresh();
   try { var raw = localStorage.getItem(KEY); if (raw) state = JSON.parse(raw); } catch (e) {}
-  if (!state || !Array.isArray(state.items)) state = { start: 1250, items: [], fixed: DEFAULT_FIXED.slice(), income: 0 };
+  if (!state || !Array.isArray(state.items)) state = fresh();
   if (!Array.isArray(state.fixed)) state.fixed = DEFAULT_FIXED.slice();
-  if (typeof state.income !== "number") state.income = 0;
+  if (!Array.isArray(state.incomes)) state.incomes = DEFAULT_INC.slice();
+  if (!state.fixed.some(function (f) { return f.id === 8; })) state.fixed.push(DEFAULT_FIXED[7]);
+  if (!state.fixed.some(function (f) { return f.id === 9; })) state.fixed.push(DEFAULT_FIXED[8]);
   function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
   function today() { var n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
   function $(id) { return document.getElementById(id); }
@@ -199,6 +224,36 @@ li .meta small { color: var(--muted); overflow-wrap: anywhere; }
     var t = Math.min(1, Math.max(0, days(START, date) / days(START, END)));
     var s = Number(state.start) || 0;
     return s + (GOAL - s) * t;
+  }
+
+  function renderList(ul, arr, key, emptyText) {
+    ul.innerHTML = "";
+    var total = 0;
+    if (!arr.length) { var e = document.createElement("li"); e.className = "empty"; e.textContent = emptyText; ul.appendChild(e); }
+    arr.forEach(function (f) {
+      if (f.on) total += f.amount;
+      var li = document.createElement("li"); li.className = f.on ? "" : "off";
+      var meta = document.createElement("div"); meta.className = "meta";
+      var nm = document.createElement("span"); nm.textContent = f.name;
+      if (!f.on) { var t = document.createElement("span"); t.className = "tag"; t.textContent = "uit"; nm.appendChild(t); }
+      meta.appendChild(nm);
+      if (f.src) { var sm = document.createElement("small"); sm.textContent = f.src; meta.appendChild(sm); }
+      var right = document.createElement("div"); right.className = "actions";
+      var amt = document.createElement("input"); amt.type = "number"; amt.inputMode = "decimal"; amt.step = "0.01"; amt.min = "0";
+      amt.className = "amt num" + (f.on && !(f.amount > 0) ? " missing" : ""); amt.id = key + "-amt-" + f.id;
+      amt.value = f.amount > 0 ? f.amount.toFixed(2) : ""; amt.placeholder = "€";
+      amt.setAttribute("aria-label", "Bedrag per maand voor " + f.name);
+      amt.addEventListener("change", function () { f.amount = Math.max(0, Math.round((parseFloat(String(this.value).replace(",", ".")) || 0) * 100) / 100); save(); render(); });
+      var tg = document.createElement("button"); tg.type = "button"; tg.className = "ghost"; tg.textContent = f.on ? "Uit" : "Aan";
+      tg.setAttribute("aria-label", (f.on ? "Zet uit: " : "Zet aan: ") + f.name);
+      tg.onclick = function () { f.on = !f.on; save(); render(); };
+      var del = document.createElement("button"); del.type = "button"; del.className = "ghost"; del.textContent = "✕";
+      del.setAttribute("aria-label", "Verwijder " + f.name);
+      del.onclick = function () { state[key] = state[key].filter(function (x) { return x.id !== f.id; }); save(); render(); };
+      right.appendChild(amt); right.appendChild(tg); right.appendChild(del);
+      li.appendChild(meta); li.appendChild(right); ul.appendChild(li);
+    });
+    return total;
   }
 
   function render() {
@@ -226,46 +281,24 @@ li .meta small { color: var(--muted); overflow-wrap: anywhere; }
     $("perweek").textContent = daysLeft > 0 ? fmt.format(left / (daysLeft / 7)) : fmt.format(left);
     $("permonth").textContent = fmt.format(perMonth);
 
-    var fl = $("fixedlist"); fl.innerHTML = "";
-    var fixedTotal = 0;
-    if (!state.fixed.length) {
-      var fe = document.createElement("li"); fe.className = "empty"; fe.textContent = "Nog geen vaste lasten. Voeg ze hieronder toe."; fl.appendChild(fe);
-    }
-    state.fixed.forEach(function (f) {
-      if (f.on) fixedTotal += f.amount;
-      var li = document.createElement("li"); li.className = f.on ? "" : "off";
-      var meta = document.createElement("div"); meta.className = "meta";
-      var nm = document.createElement("span"); nm.textContent = f.name;
-      if (!f.on) { var t = document.createElement("span"); t.className = "tag"; t.textContent = "uit"; nm.appendChild(t); }
-      meta.appendChild(nm);
-      if (f.src) { var sm = document.createElement("small"); sm.textContent = f.src; meta.appendChild(sm); }
-      var right = document.createElement("div"); right.className = "actions";
-      var amt = document.createElement("span"); amt.className = "amt num"; amt.textContent = fmt2.format(f.amount);
-      var tg = document.createElement("button"); tg.type = "button"; tg.className = "ghost"; tg.textContent = f.on ? "Uit" : "Aan";
-      tg.setAttribute("aria-label", (f.on ? "Zet uit: " : "Zet aan: ") + f.name);
-      tg.onclick = function () { f.on = !f.on; save(); render(); };
-      var del = document.createElement("button"); del.type = "button"; del.className = "ghost"; del.textContent = "✕";
-      del.setAttribute("aria-label", "Verwijder " + f.name);
-      del.onclick = function () { state.fixed = state.fixed.filter(function (x) { return x.id !== f.id; }); save(); render(); };
-      right.appendChild(amt); right.appendChild(tg); right.appendChild(del);
-      li.appendChild(meta); li.appendChild(right); fl.appendChild(li);
-    });
+    var fixedTotal = renderList($("fixedlist"), state.fixed, "fixed", "Nog geen vaste lasten. Voeg ze hieronder toe.");
+    var incTotal = renderList($("inclist"), state.incomes, "incomes", "Nog geen vast inkomen. Voeg het hieronder toe.");
     $("fixedtotal").textContent = fmt2.format(fixedTotal);
+    $("inctotal").textContent = fmt2.format(incTotal);
 
-    var inc = Number(state.income) || 0;
+    var diff = incTotal - fixedTotal;
+    $("b-inc").textContent = fmt2.format(incTotal);
+    $("b-fixed").textContent = fmt2.format(fixedTotal);
+    $("b-diff").textContent = (diff >= 0 ? "+ " : "− ") + fmt2.format(Math.abs(diff));
+    $("b-diff-row").className = "sumrow " + (diff >= 0 ? "pos" : "neg");
+    $("needmonth").textContent = fmt.format(perMonth);
     var v = $("verdict");
-    if (inc > 0) {
-      var over = inc - fixedTotal;
-      $("leftover").textContent = fmt2.format(over);
-      $("needmonth").textContent = fmt.format(perMonth);
-      if (saved >= GOAL) v.textContent = "Je doel is al gehaald.";
-      else if (over >= perMonth) v.textContent = "Dat past: je houdt " + fmt.format(over - perMonth) + " per maand over voor boodschappen en de rest.";
-      else v.textContent = "Dat past nog niet: je komt " + fmt.format(perMonth - over) + " per maand tekort. Vaste lasten schrappen of extra inkomen helpt.";
-    } else {
-      $("leftover").textContent = "–";
-      $("needmonth").textContent = fmt.format(perMonth);
-      v.textContent = "Vul je inkomen in om te zien of het past.";
-    }
+    var missing = state.fixed.concat(state.incomes).filter(function (x) { return x.on && !(x.amount > 0); }).length;
+    if (saved >= GOAL) v.textContent = "Je doel is al gehaald.";
+    else if (missing) v.textContent = "Vul eerst de ontbrekende bedragen in (oranje vakjes), dan klopt de balans.";
+    else if (diff >= perMonth) v.textContent = "Je vaste inkomen dekt je vaste lasten én je spaardoel. Je salaris is dan volledig voor boodschappen en de rest.";
+    else if (diff >= 0) v.textContent = "Je vaste inkomen dekt je vaste lasten. Van je salaris moet nog " + fmt.format(perMonth - diff) + " per maand naar sparen.";
+    else v.textContent = "Je vaste lasten zijn " + fmt.format(-diff) + " hoger dan je vaste inkomen. Van je salaris moet dus " + fmt.format(perMonth - diff) + " per maand naar vaste lasten plus sparen.";
 
     var list = $("list"); list.innerHTML = "";
     if (!state.items.length) {
@@ -322,9 +355,13 @@ li .meta small { color: var(--muted); overflow-wrap: anywhere; }
     $("fname").value = ""; $("famount").value = "";
     save(); render();
   });
-  $("income").value = state.income || "";
-  $("income").addEventListener("input", function () {
-    state.income = Math.max(0, parseFloat(String(this.value).replace(",", ".")) || 0);
+  $("incform").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var amt = parseFloat(String($("iamount").value).replace(",", "."));
+    var name = $("iname").value.trim();
+    if (!(amt > 0) || !name) return;
+    state.incomes.push({ id: Date.now(), name: name, amount: Math.round(amt * 100) / 100, on: true, src: "" });
+    $("iname").value = ""; $("iamount").value = "";
     save(); render();
   });
   $("start").value = state.start || 0;
