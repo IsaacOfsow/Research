@@ -168,7 +168,15 @@ li .meta small { color: var(--muted); overflow-wrap: anywhere; }
     <div class="sumrow"><span>Vaste lasten</span><span class="num" id="b-fixed"></span></div>
     <div class="sumrow" id="b-diff-row"><span>Verschil per maand</span><span class="num" id="b-diff"></span></div>
     <div class="sumrow"><span>Nodig voor je spaardoel</span><span class="num" id="needmonth"></span></div>
+    <div class="sumrow" id="salary-row"><span>Uit je salaris nodig per maand</span><span class="num" id="fromsalary"></span></div>
     <div class="sumrow hint" id="verdict"></div>
+    <div class="note" id="salary-note"></div>
+  </section>
+
+  <section>
+    <h2>Wat scheelt uitzetten tot 29 januari?</h2>
+    <div class="note" id="savings-note"></div>
+    <ul class="fixed" id="savings"></ul>
   </section>
 
   <section>
@@ -302,6 +310,32 @@ li .meta small { color: var(--muted); overflow-wrap: anywhere; }
     else if (diff >= perMonth) v.textContent = "Je vaste inkomen dekt je vaste lasten én je spaardoel. Je salaris is dan volledig voor boodschappen en de rest.";
     else if (diff >= 0) v.textContent = "Je vaste inkomen dekt je vaste lasten. Van je salaris moet nog " + fmt.format(perMonth - diff) + " per maand naar sparen.";
     else v.textContent = "Je vaste lasten zijn " + fmt.format(-diff) + " hoger dan je vaste inkomen. Van je salaris moet dus " + fmt.format(perMonth - diff) + " per maand naar vaste lasten plus sparen.";
+
+    var fromSalary = Math.max(0, perMonth - diff);
+    $("fromsalary").textContent = fmt.format(fromSalary);
+    $("salary-note").textContent = saved >= GOAL ? "" :
+      "Dit is " + fmt.format(perMonth) + " sparen" + (diff < 0 ? " plus " + fmt.format(-diff) + " om je vaste lasten rond te krijgen" : "") +
+      ". Wat je van je salaris daarna overhoudt, is voor boodschappen en de rest.";
+
+    var monthsLeft = daysLeft / 30.44;
+    var sv = $("savings"); sv.innerHTML = "";
+    var optional = state.fixed.filter(function (f) { return f.on && f.amount > 0 && f.id !== 1 && f.id !== 9; });
+    $("savings-note").textContent = "Nog " + monthsLeft.toFixed(1) + " maand te gaan. Collegegeld en zorgverzekering staan er niet bij, die kun je niet zomaar stoppen. Tik op Uit om het effect direct in de balans te zien.";
+    if (!optional.length) { var se = document.createElement("li"); se.className = "empty"; se.textContent = "Alles wat uit kan, staat al uit."; sv.appendChild(se); }
+    optional.sort(function (a, b) { return b.amount - a.amount; }).forEach(function (f) {
+      var li = document.createElement("li");
+      var meta = document.createElement("div"); meta.className = "meta";
+      var nm = document.createElement("span"); nm.textContent = f.name;
+      var sm = document.createElement("small"); sm.textContent = fmt2.format(f.amount) + " per maand";
+      meta.appendChild(nm); meta.appendChild(sm);
+      var right = document.createElement("div"); right.className = "actions";
+      var tot = document.createElement("span"); tot.className = "num"; tot.style.fontWeight = "600"; tot.textContent = "+ " + fmt.format(f.amount * monthsLeft);
+      var tg = document.createElement("button"); tg.type = "button"; tg.className = "ghost"; tg.textContent = "Uit";
+      tg.setAttribute("aria-label", "Zet uit: " + f.name);
+      tg.onclick = function () { f.on = false; save(); render(); };
+      right.appendChild(tot); right.appendChild(tg);
+      li.appendChild(meta); li.appendChild(right); sv.appendChild(li);
+    });
 
     var list = $("list"); list.innerHTML = "";
     if (!state.items.length) {
