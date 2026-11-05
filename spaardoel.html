@@ -87,6 +87,13 @@ li .meta small { color: var(--muted); overflow-wrap: anywhere; }
 .fixed .actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
 .fixed .amt { width: 92px; padding: 8px; text-align: right; font-weight: 600; }
 .fixed .amt.missing { border-color: var(--warn); }
+.fixed .day { width: 58px; padding: 8px 6px; text-align: center; font-size: 14px; }
+.sync { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.sync i { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); display: inline-block; }
+.sync.ok i { background: var(--good); }
+.cal li.pay { color: var(--accent); font-weight: 600; }
+.cal li.today .meta small { color: var(--accent); }
+.cal .minus { color: var(--warn); } .cal .plus { color: var(--good); }
 .sumrow { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); font-weight: 600; }
 .sumrow.hint { font-weight: 400; color: var(--muted); font-size: 14px; }
 .sumrow.neg { color: var(--warn); }
@@ -124,6 +131,7 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
     <header>
       <div class="eyebrow">Spaardoel</div>
       <h1>€ 7.000 voor 29 januari 2027</h1>
+      <div class="sync" id="sync"><i></i><span>Alleen op dit apparaat bewaard</span></div>
     </header>
     <div class="hero">
       <div class="num"><span class="big" id="saved">€ 0</span></div>
@@ -223,6 +231,11 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
       <div class="note" id="salary-note"></div>
     </section>
     <section>
+      <h2>Komende 31 dagen op je rekening</h2>
+      <div class="note">Wanneer welke vaste last wordt afgeschreven en wanneer er geld binnenkomt. De dag per post pas je aan in de lijsten hieronder (vakje "dag").</div>
+      <ul class="cal" id="cal"></ul>
+    </section>
+    <section>
       <h2>Wat scheelt uitzetten tot 29 januari?</h2>
       <div class="note" id="savings-note"></div>
       <ul class="fixed" id="savings"></ul>
@@ -285,19 +298,19 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
   var dfmt = new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short" });
   var KEY = "spaardoel-v1";
   var DEFAULT_FIXED = [
-    { id: 1, name: "Collegegeld Hogeschool Rotterdam", amount: 269.40, on: true, src: "incasso rond de 26e" },
-    { id: 2, name: "Claude Max", amount: 108.90, on: true, src: "€ 90 + btw, per 1 nov" },
-    { id: 3, name: "GPTinf Pro", amount: 23.00, on: true, src: "US$ 24,99, verlengt 23 nov" },
-    { id: 4, name: "Spotify Premium", amount: 13.99, on: true, src: "sinds oktober € 13,99" },
-    { id: 5, name: "Snapchat+", amount: 3.99, on: true, src: "via Apple, 28e van de maand" },
-    { id: 6, name: "iCloud+ 200 GB", amount: 2.99, on: true, src: "via Apple, 22e van de maand" },
-    { id: 7, name: "Coursera", amount: 42.00, on: false, src: "betaling mislukt sinds 24 okt" },
-    { id: 8, name: "Basic-Fit", amount: 34.99, on: true, src: "2e van de maand" },
-    { id: 9, name: "Interpolis zorgverzekering", amount: 155.25, on: true, src: "maandpremie" }
+    { id: 1, name: "Collegegeld Hogeschool Rotterdam", amount: 269.40, on: true, day: 26, src: "incasso rond de 26e" },
+    { id: 2, name: "Claude Max", amount: 108.90, on: true, day: 1, src: "€ 90 + btw, per 1 nov" },
+    { id: 3, name: "GPTinf Pro", amount: 23.00, on: true, day: 23, src: "US$ 24,99, verlengt 23 nov" },
+    { id: 4, name: "Spotify Premium", amount: 13.99, on: true, day: null, src: "sinds oktober € 13,99 · dag onbekend" },
+    { id: 5, name: "Snapchat+", amount: 3.99, on: true, day: 28, src: "via Apple, 28e van de maand" },
+    { id: 6, name: "iCloud+ 200 GB", amount: 2.99, on: true, day: 22, src: "via Apple, 22e van de maand" },
+    { id: 7, name: "Coursera", amount: 42.00, on: false, day: 24, src: "betaling mislukt sinds 24 okt" },
+    { id: 8, name: "Basic-Fit", amount: 34.99, on: true, day: 2, src: "2e van de maand" },
+    { id: 9, name: "Interpolis zorgverzekering", amount: 155.25, on: true, day: null, src: "maandpremie · dag onbekend" }
   ];
   var DEFAULT_INC = [
-    { id: 101, name: "DUO studiefinanciering", amount: 457.36, on: true, src: "per maand" },
-    { id: 102, name: "Zorgtoeslag (Belastingdienst)", amount: 130.00, on: true, src: "per maand" }
+    { id: 101, name: "DUO studiefinanciering", amount: 457.36, on: true, day: 24, src: "DUO betaalt meestal rond de 24e, controleer" },
+    { id: 102, name: "Zorgtoeslag (Belastingdienst)", amount: 130.00, on: true, day: 20, src: "toeslagen komen rond de 20e, controleer" }
   ];
   function fresh() { return { start: 1250, items: [], fixed: DEFAULT_FIXED.slice(), incomes: DEFAULT_INC.slice(), expenses: [] }; }
   var state = fresh();
@@ -309,9 +322,69 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
   if (!state.fixed.some(function (f) { return f.id === 8; })) state.fixed.push(DEFAULT_FIXED[7]);
   if (!state.fixed.some(function (f) { return f.id === 9; })) state.fixed.push(DEFAULT_FIXED[8]);
   DEFAULT_FIXED.concat(DEFAULT_INC).forEach(function (dft) {
-    state.fixed.concat(state.incomes).forEach(function (x) { if (x.id === dft.id && !(x.amount > 0)) { x.amount = dft.amount; x.name = dft.name; x.src = dft.src; } });
+    state.fixed.concat(state.incomes).forEach(function (x) {
+      if (x.id === dft.id && !(x.amount > 0)) { x.amount = dft.amount; x.name = dft.name; x.src = dft.src; }
+      if (x.id === dft.id && x.day === undefined) { x.day = dft.day; if (dft.day === null) x.src = dft.src; }
+    });
   });
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+    scheduleCloud();
+  }
+  /* Opslag bij Claude (db-capability). Lokaal blijft de snelle kopie. */
+  var cloud = { db: null, doc: null, timer: null, writing: false, dirty: false, lastJson: "" };
+  function setSync(ok, text) { var el = $("sync"); el.className = "sync" + (ok ? " ok" : ""); el.querySelector("span").textContent = text; }
+  function scheduleCloud() {
+    if (!cloud.doc) return;
+    cloud.dirty = true;
+    clearTimeout(cloud.timer);
+    cloud.timer = setTimeout(flushCloud, 600);
+  }
+  function flushCloud() {
+    if (!cloud.doc || cloud.writing || !cloud.dirty) return;
+    var json = JSON.stringify(state);
+    if (json === cloud.lastJson) { cloud.dirty = false; return; }
+    cloud.writing = true; cloud.dirty = false;
+    cloud.doc.set({ v: 1, updated: new Date().toISOString(), state: JSON.parse(json) }).then(function () {
+      cloud.lastJson = json; cloud.writing = false; setSync(true, "Opgeslagen bij Claude");
+      if (cloud.dirty) flushCloud();
+    }, function (e) {
+      cloud.writing = false;
+      setSync(false, e && e.code === "quota_exceeded" ? "Opslag vol, verwijder oude uitgaven" : "Opslaan bij Claude mislukt, lokaal wel bewaard");
+      if (e && (e.code === "unavailable")) setTimeout(function () { cloud.dirty = true; flushCloud(); }, 2000 + Math.random() * 2000);
+    });
+  }
+  function connectCloud() {
+    if (!window.claude || !window.claude.use) return;
+    window.claude.use("db").then(function (db) {
+      if (!db) { setSync(false, "Alleen op dit apparaat bewaard (niet ingelogd)"); return; }
+      cloud.db = db; cloud.doc = db.doc("state/main");
+      var loaded = false;
+      var timer = setTimeout(function () { if (!loaded) setSync(false, "Claude-opslag nog niet bereikbaar"); }, 10000);
+      cloud.doc.onSnapshot(function (snap) {
+        if (snap.metadata.fromCache && !snap.exists) return;
+        loaded = true; clearTimeout(timer);
+        if (!snap.exists) {
+          /* Eerste keer: zet de lokale gegevens in de cloud. */
+          cloud.dirty = true; flushCloud(); return;
+        }
+        if (snap.metadata.hasPendingWrites) return;
+        var body = snap.data(); var remote = body && body.state;
+        if (!remote || !Array.isArray(remote.items)) return;
+        var json = JSON.stringify(remote);
+        if (json !== JSON.stringify(state)) {
+          state = remote; cloud.lastJson = json;
+          try { localStorage.setItem(KEY, json); } catch (e) {}
+          $("start").value = state.start || 0;
+          render();
+        } else { cloud.lastJson = json; }
+        setSync(true, "Opgeslagen bij Claude");
+      }, function (e) {
+        clearTimeout(timer);
+        setSync(false, e && e.code === "revoked" ? "Toegang tot Claude-opslag vervallen" : "Claude-opslag niet beschikbaar, lokaal wel bewaard");
+      });
+    }, function () { setSync(false, "Alleen op dit apparaat bewaard"); });
+  }
   function today() { var n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
   function $(id) { return document.getElementById(id); }
   function days(a, b) { return Math.round((b - a) / DAY); }
@@ -431,6 +504,10 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
       meta.appendChild(nm);
       if (f.src) { var sm = document.createElement("small"); sm.textContent = f.src; meta.appendChild(sm); }
       var right = document.createElement("div"); right.className = "actions";
+      var dayIn = document.createElement("input"); dayIn.type = "number"; dayIn.inputMode = "numeric"; dayIn.min = "1"; dayIn.max = "31"; dayIn.step = "1";
+      dayIn.className = "day num"; dayIn.id = key + "-day-" + f.id; dayIn.placeholder = "dag"; dayIn.value = f.day ? f.day : "";
+      dayIn.setAttribute("aria-label", "Dag van de maand voor " + f.name);
+      dayIn.addEventListener("change", function () { var dv = parseInt(this.value, 10); f.day = (dv >= 1 && dv <= 31) ? dv : null; save(); render(); });
       var amt = document.createElement("input"); amt.type = "number"; amt.inputMode = "decimal"; amt.step = "0.01"; amt.min = "0";
       amt.className = "amt num" + (f.on && !(f.amount > 0) ? " missing" : ""); amt.id = key + "-amt-" + f.id;
       amt.value = f.amount > 0 ? f.amount.toFixed(2) : ""; amt.placeholder = "€";
@@ -442,7 +519,7 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
       var del = document.createElement("button"); del.type = "button"; del.className = "ghost"; del.textContent = "✕";
       del.setAttribute("aria-label", "Verwijder " + f.name);
       del.onclick = function () { state[key] = state[key].filter(function (x) { return x.id !== f.id; }); save(); render(); };
-      right.appendChild(amt); right.appendChild(tg); right.appendChild(del);
+      right.appendChild(dayIn); right.appendChild(amt); right.appendChild(tg); right.appendChild(del);
       li.appendChild(meta); li.appendChild(right); ul.appendChild(li);
     });
     return sum;
@@ -550,6 +627,42 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
       "Dit is " + fmt.format(perMonth) + " sparen" + (diff < 0 ? " plus " + fmt.format(-diff) + " om je vaste lasten rond te krijgen" : "") +
       ". Wat je van je salaris daarna overhoudt, is voor boodschappen en de rest tot de volgende 28e.";
 
+    /* Kalender: komende 31 dagen */
+    var cal = $("cal"); cal.innerHTML = "";
+    var events = [];
+    function pushMonthly(dayOfMonth, label, amount, kind) {
+      if (!dayOfMonth) return;
+      for (var m = 0; m < 2; m++) {
+        var y = t.getFullYear(), mo = t.getMonth() + m;
+        var last = new Date(y, mo + 1, 0).getDate();
+        var dt = new Date(y, mo, Math.min(dayOfMonth, last));
+        if (dt >= t && days(t, dt) <= 31) events.push({ date: dt, label: label, amount: amount, kind: kind });
+      }
+    }
+    state.fixed.forEach(function (f) { if (f.on && f.amount > 0) pushMonthly(f.day, f.name, -f.amount, "minus"); });
+    state.incomes.forEach(function (f) { if (f.on && f.amount > 0) pushMonthly(f.day, f.name, f.amount, "plus"); });
+    PAYDAYS.forEach(function (p) { if (p >= t && days(t, p) <= 31) events.push({ date: p, label: "Salaris, zet " + fmt.format(perMonth) + " apart", amount: null, kind: "pay" }); });
+    events.sort(function (a, b) { return a.date - b.date || (a.kind === "pay" ? -1 : 1); });
+    if (!events.length) { var ce0 = document.createElement("li"); ce0.className = "empty"; ce0.textContent = "Geen afschrijvingen met een bekende dag. Vul de dag in bij je vaste lasten."; cal.appendChild(ce0); }
+    var unknown = state.fixed.concat(state.incomes).filter(function (f) { return f.on && f.amount > 0 && !f.day; });
+    events.forEach(function (ev) {
+      var li = document.createElement("li"); li.className = ev.kind === "pay" ? "pay" : "";
+      if (days(t, ev.date) === 0) li.className += " today";
+      var meta = document.createElement("div"); meta.className = "meta";
+      var nm = document.createElement("span"); nm.textContent = ev.label;
+      var sm = document.createElement("small"); var dd = days(t, ev.date);
+      sm.textContent = dfmt.format(ev.date) + (dd === 0 ? " · vandaag" : dd === 1 ? " · morgen" : " · over " + dd + " dagen");
+      meta.appendChild(nm); meta.appendChild(sm);
+      var r = document.createElement("span"); r.className = "num " + ev.kind;
+      r.textContent = ev.amount == null ? "" : (ev.amount < 0 ? "− " : "+ ") + fmt2.format(Math.abs(ev.amount));
+      li.appendChild(meta); li.appendChild(r); cal.appendChild(li);
+    });
+    if (unknown.length) {
+      var cu = document.createElement("li"); cu.className = "empty";
+      cu.textContent = "Dag nog onbekend: " + unknown.map(function (f) { return f.name; }).join(", ") + ". Vul die in bij de lijst hieronder.";
+      cal.appendChild(cu);
+    }
+
     var monthsLeft = daysLeft / 30.44;
     var sv = $("savings"); sv.innerHTML = "";
     var optional = state.fixed.filter(function (f) { return f.on && f.amount > 0 && f.id !== 1 && f.id !== 9; });
@@ -643,6 +756,7 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
 
   showTab(location.hash.replace("#", ""));
   render();
+  connectCloud();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (!$("v-overzicht").hidden) drawChart(); });
 })();
 </script>
