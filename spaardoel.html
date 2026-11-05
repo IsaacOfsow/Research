@@ -654,9 +654,10 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
       var sp = document.createElement("span"); sp.textContent = row[1]; var b0 = document.createElement("b"); b0.className = "num"; b0.textContent = fmt.format(row[2]);
       d0.appendChild(i0); d0.appendChild(sp); d0.appendChild(b0); dl.appendChild(d0);
     });
-    $("ownnote").textContent = own < 0
+    $("ownnote").textContent = (own < 0
       ? "Je staat " + fmt.format(-own) + " onder nul: geleend plus gepland is meer dan je hebt. Wat je nu uitgeeft, geef je uit van geleend geld."
-      : "Van de " + fmt.format(saved) + " op je rekening is " + fmt.format(own) + " echt van jou na terugbetalen en je plannen.";
+      : "Van de " + fmt.format(saved) + " op je rekening is " + fmt.format(own) + " echt van jou na terugbetalen en je plannen.")
+      + " Aanpassen doe je via je startbedrag (Storten) of bij Geleend en gepland (Geld).";
 
     var ll = $("loanlist"); ll.innerHTML = "";
     if (!state.obligations.length) { var le0 = document.createElement("li"); le0.className = "empty"; le0.textContent = "Niets geleend, niets gepland."; ll.appendChild(le0); }
@@ -668,7 +669,10 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
       var sm = document.createElement("small"); sm.textContent = o.date ? dfmt.format(new Date(o.date + "T12:00:00")) : "";
       meta.appendChild(nm); if (o.date) meta.appendChild(sm);
       var right = document.createElement("div"); right.className = "actions";
-      var am = document.createElement("span"); am.className = "num"; am.style.fontWeight = "600"; am.textContent = fmt2.format(o.amount);
+      var am = document.createElement("input"); am.type = "number"; am.inputMode = "decimal"; am.step = "0.01"; am.min = "0";
+      am.className = "amt num"; am.id = "obl-amt-" + o.id; am.value = o.amount.toFixed(2);
+      am.setAttribute("aria-label", "Bedrag voor " + o.name);
+      am.addEventListener("change", function () { o.amount = Math.max(0, parseAmt(this.value)); save(); render(); });
       var done = document.createElement("button"); done.type = "button"; done.className = "ghost";
       done.textContent = o.type === "loan" ? "Terugbetaald" : "Gedaan";
       done.setAttribute("aria-label", (o.type === "loan" ? "Terugbetaald: " : "Gedaan: ") + o.name);
