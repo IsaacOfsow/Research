@@ -140,6 +140,21 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
 .dots i.today { outline: 2px solid var(--warm); outline-offset: 2px; }
 .checkbtn.done { background: var(--warm-soft); color: var(--fg); }
 .tip { font-size: 15px; line-height: 1.45; }
+.donutwrap { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.donut { width: 150px; height: 150px; flex-shrink: 0; position: relative; }
+.donut svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.donut circle { fill: none; stroke-width: 18; stroke-linecap: butt; }
+.donut .track { stroke: var(--track); }
+.donut .c { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.donut .c b { font-family: var(--font-display); font-size: 22px; font-weight: 700; }
+.donut .c small { font-size: 11px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.dlegend { display: flex; flex-direction: column; gap: 8px; flex: 1 1 140px; min-width: 0; }
+.dlegend div { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.dlegend i { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+.dlegend span { flex: 1; min-width: 0; }
+.dlegend b { font-weight: 600; white-space: nowrap; }
+.i-own { background: var(--accent); } .i-loan { background: var(--warm); } .i-plan { background: var(--muted); }
+.neg { color: var(--warn); }
 @media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
 </style>
 
@@ -167,6 +182,22 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
       </div>
       <div class="tip" id="tip"></div>
       <button type="button" class="checkbtn" id="checkin">Vandaag even gecheckt</button>
+    </section>
+    <section>
+      <h2>Wat is echt van jou?</h2>
+      <div class="donutwrap">
+        <div class="donut">
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <circle class="track" cx="50" cy="50" r="40"></circle>
+            <circle id="seg-plan" cx="50" cy="50" r="40" style="stroke: var(--muted)"></circle>
+            <circle id="seg-loan" cx="50" cy="50" r="40" style="stroke: var(--warm)"></circle>
+            <circle id="seg-own" cx="50" cy="50" r="40" style="stroke: var(--accent)"></circle>
+          </svg>
+          <div class="c"><b class="num" id="own"></b><small>van jou</small></div>
+        </div>
+        <div class="dlegend" id="dlegend"></div>
+      </div>
+      <div class="note" id="ownnote"></div>
     </section>
     <div class="grid">
       <div class="card"><span class="eyebrow">Nog te sparen</span><div class="v num" id="left"></div></div>
@@ -256,6 +287,24 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
       <div class="note" id="salary-note"></div>
     </section>
     <section>
+      <h2>Geleend en gepland</h2>
+      <div class="note">Geleend geld moet terug, dus het is niet van jou. Geplande uitgaven haal je alvast van je eigen geld af.</div>
+      <ul class="fixed" id="loanlist"></ul>
+      <form id="loanform">
+        <div class="row">
+          <label for="lname">Wat<input id="lname" type="text" maxlength="40" placeholder="bijv. Geleend van Mo" required></label>
+          <label for="lamount">Bedrag (€)<input id="lamount" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="bijv. 800" required></label>
+        </div>
+        <div class="row">
+          <label for="ltype">Soort
+            <select id="ltype"><option value="loan">Geleend (moet terug)</option><option value="plan">Geplande uitgave</option></select>
+          </label>
+          <label for="ldate">Datum (optioneel)<input id="ldate" type="date"></label>
+        </div>
+        <button type="submit">Toevoegen</button>
+      </form>
+    </section>
+    <section>
       <h2>Komende 31 dagen op je rekening</h2>
       <div class="note">Wanneer welke vaste last wordt afgeschreven en wanneer er geld binnenkomt. De dag per post pas je aan in de lijsten hieronder (vakje "dag").</div>
       <ul class="cal" id="cal"></ul>
@@ -337,7 +386,11 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
     { id: 101, name: "DUO studiefinanciering", amount: 457.36, on: true, day: 24, src: "DUO betaalt meestal rond de 24e, controleer" },
     { id: 102, name: "Zorgtoeslag (Belastingdienst)", amount: 130.00, on: true, day: 20, src: "toeslagen komen rond de 20e, controleer" }
   ];
-  function fresh() { return { start: 1250, items: [], fixed: DEFAULT_FIXED.slice(), incomes: DEFAULT_INC.slice(), expenses: [], checkins: [] }; }
+  var DEFAULT_OBL = [
+    { id: 201, name: "Geleend", amount: 800, type: "loan", date: "2026-11-05" },
+    { id: 202, name: "Pokémon kaarten", amount: 800, type: "plan", date: "2026-11-06" }
+  ];
+  function fresh() { return { start: 1250, items: [], fixed: DEFAULT_FIXED.slice(), incomes: DEFAULT_INC.slice(), expenses: [], checkins: [], obligations: DEFAULT_OBL.slice() }; }
   var state = fresh();
   try { var raw = localStorage.getItem(KEY); if (raw) state = JSON.parse(raw); } catch (e) {}
   if (!state || !Array.isArray(state.items)) state = fresh();
@@ -345,6 +398,7 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
   if (!Array.isArray(state.incomes)) state.incomes = DEFAULT_INC.slice();
   if (!Array.isArray(state.expenses)) state.expenses = [];
   if (!Array.isArray(state.checkins)) state.checkins = [];
+  if (!Array.isArray(state.obligations)) state.obligations = DEFAULT_OBL.slice();
   if (!state.fixed.some(function (f) { return f.id === 8; })) state.fixed.push(DEFAULT_FIXED[7]);
   if (!state.fixed.some(function (f) { return f.id === 9; })) state.fixed.push(DEFAULT_FIXED[8]);
   DEFAULT_FIXED.concat(DEFAULT_INC).forEach(function (dft) {
@@ -580,6 +634,54 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
     $("permonth").textContent = fmt.format(perMonth);
     $("nextpay").textContent = paysLeft.length ? dfmt.format(paysLeft[0]) : "–";
 
+    /* Van jou: spaargeld min geleend min gepland */
+    var loans = state.obligations.filter(function (o) { return o.type === "loan"; }).reduce(function (a, o) { return a + o.amount; }, 0);
+    var plans = state.obligations.filter(function (o) { return o.type === "plan"; }).reduce(function (a, o) { return a + o.amount; }, 0);
+    var own = saved - loans - plans;
+    var base = Math.max(saved, loans + plans, 1);
+    var C = 2 * Math.PI * 40;
+    function seg(id, fromV, toV) {
+      var el = $(id); var a = Math.max(0, Math.min(base, fromV)) / base, b = Math.max(0, Math.min(base, toV)) / base;
+      el.setAttribute("stroke-dasharray", (Math.max(0, b - a) * C) + " " + C);
+      el.setAttribute("stroke-dashoffset", String(-a * C));
+    }
+    var ownPos = Math.max(0, own);
+    seg("seg-own", 0, ownPos); seg("seg-loan", ownPos, ownPos + loans); seg("seg-plan", ownPos + loans, ownPos + loans + plans);
+    $("own").textContent = fmt.format(own); $("own").className = "num" + (own < 0 ? " neg" : "");
+    var dl = $("dlegend"); dl.innerHTML = "";
+    [["i-own", "Echt van jou", ownPos], ["i-loan", "Geleend, moet terug", loans], ["i-plan", "Al gepland uit te geven", plans]].forEach(function (row) {
+      var d0 = document.createElement("div"); var i0 = document.createElement("i"); i0.className = row[0];
+      var sp = document.createElement("span"); sp.textContent = row[1]; var b0 = document.createElement("b"); b0.className = "num"; b0.textContent = fmt.format(row[2]);
+      d0.appendChild(i0); d0.appendChild(sp); d0.appendChild(b0); dl.appendChild(d0);
+    });
+    $("ownnote").textContent = own < 0
+      ? "Je staat " + fmt.format(-own) + " onder nul: geleend plus gepland is meer dan je hebt. Wat je nu uitgeeft, geef je uit van geleend geld."
+      : "Van de " + fmt.format(saved) + " op je rekening is " + fmt.format(own) + " echt van jou na terugbetalen en je plannen.";
+
+    var ll = $("loanlist"); ll.innerHTML = "";
+    if (!state.obligations.length) { var le0 = document.createElement("li"); le0.className = "empty"; le0.textContent = "Niets geleend, niets gepland."; ll.appendChild(le0); }
+    state.obligations.forEach(function (o) {
+      var li = document.createElement("li");
+      var meta = document.createElement("div"); meta.className = "meta";
+      var nm = document.createElement("span"); nm.textContent = o.name;
+      var tg0 = document.createElement("span"); tg0.className = "tag"; tg0.textContent = o.type === "loan" ? "geleend" : "gepland"; nm.appendChild(tg0);
+      var sm = document.createElement("small"); sm.textContent = o.date ? dfmt.format(new Date(o.date + "T12:00:00")) : "";
+      meta.appendChild(nm); if (o.date) meta.appendChild(sm);
+      var right = document.createElement("div"); right.className = "actions";
+      var am = document.createElement("span"); am.className = "num"; am.style.fontWeight = "600"; am.textContent = fmt2.format(o.amount);
+      var done = document.createElement("button"); done.type = "button"; done.className = "ghost";
+      done.textContent = o.type === "loan" ? "Terugbetaald" : "Gedaan";
+      done.setAttribute("aria-label", (o.type === "loan" ? "Terugbetaald: " : "Gedaan: ") + o.name);
+      done.onclick = function () {
+        if (o.type === "plan") state.expenses.push({ id: Date.now(), amount: o.amount, cat: "Overig", note: o.name, date: new Date().toISOString() });
+        state.obligations = state.obligations.filter(function (x) { return x.id !== o.id; }); save(); render();
+      };
+      var del = document.createElement("button"); del.type = "button"; del.className = "ghost"; del.textContent = "✕"; del.setAttribute("aria-label", "Verwijder " + o.name);
+      del.onclick = function () { state.obligations = state.obligations.filter(function (x) { return x.id !== o.id; }); save(); render(); };
+      right.appendChild(am); right.appendChild(done); right.appendChild(del);
+      li.appendChild(meta); li.appendChild(right); ll.appendChild(li);
+    });
+
     /* Dagelijkse check-in */
     function ymd(dt) { return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0"); }
     var todayKey = ymd(t), set = {}; state.checkins.forEach(function (k) { set[k] = true; });
@@ -802,6 +904,14 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
     if (!(amt > 0) || !name) return;
     state.incomes.push({ id: Date.now(), name: name, amount: amt, on: true, src: "" });
     $("iname").value = ""; $("iamount").value = "";
+    save(); render();
+  });
+  $("loanform").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var amt = parseAmt($("lamount").value), name = $("lname").value.trim();
+    if (!(amt > 0) || !name) return;
+    state.obligations.push({ id: Date.now(), name: name, amount: amt, type: $("ltype").value, date: $("ldate").value || "" });
+    $("lname").value = ""; $("lamount").value = ""; $("ldate").value = "";
     save(); render();
   });
   $("checkin").addEventListener("click", function () {
