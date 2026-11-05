@@ -201,11 +201,11 @@ li .meta small { color: var(--muted); overflow-wrap: anywhere; }
     { id: 6, name: "iCloud+ 200 GB", amount: 2.99, on: true, src: "via Apple, 22e van de maand" },
     { id: 7, name: "Coursera", amount: 42.00, on: false, src: "betaling mislukt sinds 24 okt" },
     { id: 8, name: "Basic-Fit", amount: 34.99, on: true, src: "2e van de maand" },
-    { id: 9, name: "Zorgverzekering", amount: 0, on: true, src: "vul je maandpremie in" }
+    { id: 9, name: "Interpolis zorgverzekering", amount: 155.25, on: true, src: "maandpremie" }
   ];
   var DEFAULT_INC = [
-    { id: 101, name: "DUO studiefinanciering", amount: 0, on: true, src: "vul het maandbedrag in" },
-    { id: 102, name: "Zorgtoeslag", amount: 0, on: true, src: "vul het maandbedrag in" }
+    { id: 101, name: "DUO studiefinanciering", amount: 457.36, on: true, src: "per maand" },
+    { id: 102, name: "Zorgtoeslag (Belastingdienst)", amount: 130.00, on: true, src: "per maand" }
   ];
   function fresh() { return { start: 1250, items: [], fixed: DEFAULT_FIXED.slice(), incomes: DEFAULT_INC.slice() }; }
   var state = fresh();
@@ -215,6 +215,9 @@ li .meta small { color: var(--muted); overflow-wrap: anywhere; }
   if (!Array.isArray(state.incomes)) state.incomes = DEFAULT_INC.slice();
   if (!state.fixed.some(function (f) { return f.id === 8; })) state.fixed.push(DEFAULT_FIXED[7]);
   if (!state.fixed.some(function (f) { return f.id === 9; })) state.fixed.push(DEFAULT_FIXED[8]);
+  DEFAULT_FIXED.concat(DEFAULT_INC).forEach(function (d) {
+    state.fixed.concat(state.incomes).forEach(function (x) { if (x.id === d.id && !(x.amount > 0)) { x.amount = d.amount; x.name = d.name; x.src = d.src; } });
+  });
   function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
   function today() { var n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
   function $(id) { return document.getElementById(id); }
