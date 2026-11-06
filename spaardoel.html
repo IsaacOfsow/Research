@@ -124,8 +124,8 @@ nav.tabs {
   padding-bottom: env(safe-area-inset-bottom, 0px);
   padding-left: max(0px, env(safe-area-inset-left, 0px)); padding-right: max(0px, env(safe-area-inset-right, 0px));
 }
-nav.tabs .inner { max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); }
-nav.tabs button { background: none; color: var(--muted); border: 0; border-radius: 0; padding: 10px 2px 8px; font-size: 11px; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 3px; letter-spacing: .02em; }
+nav.tabs .inner { max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: repeat(6, 1fr); }
+nav.tabs button { background: none; color: var(--muted); border: 0; border-radius: 0; padding: 10px 0 8px; font-size: 10.5px; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 3px; letter-spacing: .02em; }
 nav.tabs button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 nav.tabs button[aria-selected="true"] { color: var(--accent); }
 nav.tabs button[aria-selected="true"] svg { stroke-width: 2.2; }
@@ -163,6 +163,19 @@ input[type="range"]::-moz-range-track { height: 10px; border-radius: 5px; backgr
 input[type="range"]::-moz-range-progress { height: 10px; border-radius: 5px; background: var(--accent); }
 input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: var(--surface); border: 3px solid var(--accent); }
 .ticks { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.learn h2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.badge { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; font-weight: 600; padding: 3px 8px; border-radius: 999px; }
+.badge.proof { background: var(--accent-soft); color: var(--accent); }
+.badge.often { background: var(--warm-soft); color: #7a4d00; }
+:root:not([data-theme="light"]) .badge.often { color: var(--warm); }
+.badge.rule { background: var(--track); color: var(--muted); }
+.learn p { margin: 0; line-height: 1.5; }
+.learn .do { background: var(--bg); border-radius: 12px; padding: 12px 14px; font-size: 15px; line-height: 1.45; }
+.learn .do b { color: var(--accent); }
+.learn .src { font-size: 12px; color: var(--muted); }
+.learn .intro { background: transparent; padding: 0; }
+.learn .intro p { color: var(--muted); font-size: 15px; }
+.legendrow { display: flex; gap: 8px; flex-wrap: wrap; }
 .neg { color: var(--warn); }
 @media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
 </style>
@@ -334,6 +347,105 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border-radius
       <div class="sumrow hint" id="payhint"></div>
     </section>
   </div>
+
+  <div class="view learn" id="v-leren" hidden>
+    <section class="intro">
+      <h2 style="font-size:22px">Sparen dat echt werkt</h2>
+      <p>Niet alles wat op internet staat is onderzocht. Daarom staat bij elke tip hoe hard het bewijs is.</p>
+      <div class="legendrow"><span class="badge proof">Bewezen</span><span class="badge often">Werkt vaak</span><span class="badge rule">Vuistregel</span></div>
+    </section>
+
+    <section>
+      <h2>Zet het automatisch <span class="badge proof">Bewezen</span></h2>
+      <p>De grootste les uit al het onderzoek: mensen die moeten kiezen om te sparen, doen het niet. Mensen bij wie het vanzelf gaat, sparen wél. Bij Amerikaanse militairen was automatisch sparen ongeveer honderd keer zo effectief als berichtjes en goede voornemens.</p>
+      <div class="do"><b>Doe dit:</b> maak in je bank-app een automatische overboeking van je betaalrekening naar je spaarrekening op de 28e, een paar uur na je salaris. Niet jij beslist elke maand, de bank doet het.</div>
+      <div class="src">Patterson & Skimmyhorn, Management Science 2022; Banerjee e.a., Journal of Development Economics 2024.</div>
+    </section>
+
+    <section>
+      <h2>Betaal eerst jezelf <span class="badge proof">Bewezen</span></h2>
+      <p>Spaar niet wat je overhoudt, maar houd over wat je niet hebt gespaard. Het spaargeld gaat er als allereerste af, vóór huur, eten en abonnementen. Wat op je betaalrekening staat, is daarna gewoon je budget. Dit is de kern van <em>The Richest Man in Babylon</em> (Clason) en <em>The Automatic Millionaire</em> (Bach), en het is precies wat automatisch sparen doet.</p>
+      <div class="do"><b>Doe dit:</b> op de 28e eerst je spaarbedrag weg, dan pas de rest. Je leeft van wat overblijft, niet andersom.</div>
+    </section>
+
+    <section>
+      <h2>Spaar elke loonsverhoging <span class="badge proof">Bewezen</span></h2>
+      <p><em>Save More Tomorrow</em> (Thaler & Benartzi, Nobelprijs 2017): mensen spraken vooraf af dat een deel van elke toekomstige loonsverhoging naar sparen gaat. Omdat je dat geld nog nooit hebt gehad, mis je het niet. Deelnemers gingen van 3,5% naar 13,6% sparen in ruim drie jaar.</p>
+      <div class="do"><b>Doe dit:</b> krijg je meer uren, een hoger uurloon of extra DUO? Verhoog je automatische overboeking dezelfde dag nog met de helft van het verschil.</div>
+      <div class="src">Thaler & Benartzi, Journal of Political Economy 2004.</div>
+    </section>
+
+    <section>
+      <h2>Eén vaste vuistregel <span class="badge proof">Bewezen</span></h2>
+      <p>In een experiment in Chili spaarden mensen met één simpele regel een jaar lang meer. Een regel werkt omdat je niet elke keer hoeft na te denken. Bekende regels:</p>
+      <p><strong>80/20</strong>: leef van 80% van je inkomen, spaar 20%.<br><strong>50/30/20</strong> (Elizabeth Warren): 50% vaste lasten, 30% leuke dingen, 20% sparen.<br><strong>Jouw regel tot januari</strong>: eerst het spaarbedrag van de app, de rest is van jou.</p>
+      <div class="do"><b>Doe dit:</b> kies er één en hou je eraan tot 29 januari. Daarna kun je naar 20% als vaste gewoonte.</div>
+      <div class="src">Banerjee e.a. 2024 (rule-of-thumb pakket).</div>
+    </section>
+
+    <section>
+      <h2>Een aparte pot met een naam <span class="badge proof">Bewezen</span></h2>
+      <p>Geld op een aparte plek met een doel erop wordt minder snel uitgegeven. In India steeg het spaargeld met 81% toen mensen een eigen, afgesloten spaarmiddel kregen. Thaler noemt dit <em>mental accounting</em>: je brein behandelt "de pot voor 29 januari" anders dan "geld op mijn rekening".</p>
+      <div class="do"><b>Doe dit:</b> geef je spaarrekening in je bank-app de naam van je doel. Geen pinpas eraan. Hoe meer stappen om erbij te komen, hoe beter.</div>
+      <div class="src">Steinert e.a., Journal of Economic Behavior & Organization 2022; Thaler, mental accounting.</div>
+    </section>
+
+    <section>
+      <h2>Herinneringen die het doel noemen <span class="badge proof">Bewezen</span></h2>
+      <p>Berichtjes helpen, maar alleen als ze je doel en het bedrag noemen. Bij drie banken spaarden klanten met zulke herinneringen vaker hun afgesproken bedrag. Let op: herinneringen zonder automatisch sparen erachter kunnen zelfs averechts werken. Combineer ze dus.</p>
+      <div class="do"><b>Doe dit:</b> je agenda-afspraken op de 28e staan al. Plus je dagelijkse check in deze app.</div>
+      <div class="src">Karlan e.a., Management Science 2016; Gars e.a. 2025.</div>
+    </section>
+
+    <section>
+      <h2>Zelfcontrole-trucs <span class="badge proof">Bewezen</span></h2>
+      <p>Een meta-analyse van 29 studies: concrete trucs tegen impulsief uitgeven werken, met een middelgroot effect. Niet "sterk zijn", maar de verleiding kleiner maken. De beste:</p>
+      <p><strong>24-uursregel</strong>: alles boven €50 pas morgen kopen.<br><strong>Opgeslagen kaarten weg</strong> uit Apple Pay, bol, Temu, Klarna. Elke keer je kaart pakken is een rem.<br><strong>Prijs in werkuren</strong> (Vicki Robin, <em>Your Money or Your Life</em>): €100 is zoveel uur werken. Nog steeds het waard?<br><strong>Lijstje vooraf</strong> bij boodschappen en online.</p>
+      <div class="do"><b>Doe dit:</b> haal vandaag je kaart uit twee apps waar je het meest impulsief koopt.</div>
+      <div class="src">Davydenko e.a., PLoS ONE 2021 (meta-analyse, d = 0,57).</div>
+    </section>
+
+    <section>
+      <h2>Als-dan-plannen <span class="badge often">Werkt vaak</span></h2>
+      <p>Psycholoog Peter Gollwitzer liet zien dat een voornemen in de vorm "als X, dan doe ik Y" veel vaker wordt uitgevoerd dan "ik ga meer sparen". Het moment en de actie zijn dan al besloten.</p>
+      <div class="do"><b>Doe dit:</b> "Als mijn salaris binnen is, dan open ik eerst de bank-app en maak ik het spaarbedrag over." En: "Als ik iets wil kopen boven €50, dan zet ik het in mijn notities en kijk ik morgen weer."</div>
+      <div class="src">Gollwitzer, American Psychologist 1999.</div>
+    </section>
+
+    <section>
+      <h2>Vaste lasten eerst snoeien <span class="badge often">Werkt vaak</span></h2>
+      <p>Eén abonnement opzeggen bespaart elke maand opnieuw, zonder wilskracht. Dat is efficiënter dan honderd keer "nee" zeggen tegen koffie. In de Geld-tab zie je precies wat elk abonnement je oplevert tot 29 januari.</p>
+      <div class="do"><b>Doe dit:</b> kies vandaag één abonnement dat tot februari uit kan. Pauzeren mag, opzeggen hoeft niet.</div>
+    </section>
+
+    <section>
+      <h2>Kakeibo <span class="badge often">Werkt vaak</span></h2>
+      <p>Japanse methode uit 1904. Elke maand vier vragen op papier: Hoeveel komt er binnen? Hoeveel wil ik sparen? Hoeveel geef ik uit, in vier potjes (nodig, leuk, cultuur, onverwacht)? Hoe kan het beter? De kracht zit in het opschrijven: wat je noteert, zie je.</p>
+      <div class="do"><b>Doe dit:</b> dat is de Uitgaven-tab. Noteer ook de kleine dingen, vooral in-app aankopen.</div>
+    </section>
+
+    <section>
+      <h2>Geen-uitgaven-dagen <span class="badge often">Werkt vaak</span></h2>
+      <p>Spreek dagen af waarop je niets uitgeeft behalve vaste lasten. Het doorbreekt het automatisme van "even iets bestellen" en maakt de streak in deze app spannender.</p>
+      <div class="do"><b>Doe dit:</b> begin met twee dagen per week. Zie je op een dag €0 bij Uitgaven, dan telt hij.</div>
+    </section>
+
+    <section>
+      <h2>Levensstijl-inflatie <span class="badge rule">Vuistregel</span></h2>
+      <p>Meer verdienen leidt bijna altijd tot meer uitgeven: duurder eten, meer abonnementen, betere spullen. Daardoor spaar je bij een hoger inkomen vaak net zo weinig als eerst. De enige remedie is de regel hierboven: loonsverhoging eerst naar sparen.</p>
+    </section>
+
+    <section>
+      <h2>Sneeuwbal en lawine <span class="badge rule">Vuistregel</span></h2>
+      <p>Voor als je ooit schulden hebt. <strong>Sneeuwbal</strong> (Dave Ramsey): kleinste schuld eerst, voor de motivatie. <strong>Lawine</strong>: hoogste rente eerst, goedkoper op papier. Onderzoek laat zien dat mensen met de sneeuwbal vaker volhouden, dus die wint meestal in de praktijk.</p>
+      <div class="do"><b>Doe dit:</b> geen schulden maken voor 29 januari. Klarna en "achteraf betalen" tellen als schuld.</div>
+    </section>
+
+    <section>
+      <h2>Wat niet werkt <span class="badge rule">Let op</span></h2>
+      <p><strong>Alleen wilskracht</strong>: raakt op, elke dag opnieuw.<br><strong>Te strak budget</strong>: nul leuke dingen houdt niemand vol. Plan een klein vast bedrag voor jezelf in.<br><strong>Geld "even lenen" uit je spaarpot</strong>: de pot is pas een pot als hij dicht blijft.<br><strong>Alleen bijhouden zonder automatisch sparen</strong>: inzicht zonder actie verandert niets.</p>
+    </section>
+  </div>
 </main>
 
 <nav class="tabs" aria-label="Onderdelen">
@@ -343,6 +455,7 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border-radius
     <button role="tab" data-tab="uitgaven"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/></svg>Uitgaven</button>
     <button role="tab" data-tab="geld"><svg viewBox="0 0 24 24"><path d="M4 7h16v12H4zM4 7l2-3h12l2 3"/><path d="M9 13h6"/></svg>Geld</button>
     <button role="tab" data-tab="schema"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Schema</button>
+    <button role="tab" data-tab="leren"><svg viewBox="0 0 24 24"><path d="M4 5h6a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H4zM20 5h-6a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h7z"/></svg>Leren</button>
   </div>
 </nav>
 
@@ -468,7 +581,7 @@ input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border-radius
   function parseAmt(v) { return Math.round((parseFloat(String(v).replace(",", ".")) || 0) * 100) / 100; }
 
   /* Tabs */
-  var TABS = ["overzicht", "storten", "uitgaven", "geld", "schema"];
+  var TABS = ["overzicht", "storten", "uitgaven", "geld", "schema", "leren"];
   function showTab(name) {
     if (TABS.indexOf(name) < 0) name = "overzicht";
     TABS.forEach(function (t) {
