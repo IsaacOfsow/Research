@@ -154,6 +154,15 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
 .dlegend span { flex: 1; min-width: 0; }
 .dlegend b { font-weight: 600; white-space: nowrap; }
 .i-own { background: var(--accent); } .i-loan { background: var(--warm); } .i-plan { background: var(--muted); }
+.potrow { display: flex; gap: 12px; align-items: center; }
+.potrow input[type="number"] { width: 130px; flex-shrink: 0; font-family: var(--font-display); font-weight: 600; font-size: 20px; text-align: right; }
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; padding: 0; border: 0; }
+input[type="range"]::-webkit-slider-runnable-track { height: 10px; border-radius: 5px; background: linear-gradient(to right, var(--accent) var(--pct, 0%), var(--track) var(--pct, 0%)); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: var(--surface); border: 3px solid var(--accent); margin-top: -9px; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+input[type="range"]::-moz-range-track { height: 10px; border-radius: 5px; background: var(--track); }
+input[type="range"]::-moz-range-progress { height: 10px; border-radius: 5px; background: var(--accent); }
+input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: var(--surface); border: 3px solid var(--accent); }
+.ticks { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
 .neg { color: var(--warn); }
 @media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
 </style>
@@ -175,6 +184,15 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
       <div class="legend">Verticale streep: waar je vandaag zou moeten staan</div>
       <div class="pill good" id="status"></div>
     </div>
+    <section>
+      <h2>Hoeveel zit er nu in je spaarpot?</h2>
+      <div class="potrow">
+        <input type="range" id="potrange" min="0" max="7000" step="10" value="0" aria-label="Spaarpot schuif">
+        <input type="number" id="potnum" inputmode="decimal" step="1" min="0" aria-label="Spaarpot bedrag in euro">
+      </div>
+      <div class="ticks"><span>€ 0</span><span>€ 3.500</span><span>€ 7.000</span></div>
+      <div class="note">Schuif of typ wat er echt op je spaarrekening staat. Alles rekent meteen mee.</div>
+    </section>
     <section class="daily">
       <div class="top">
         <div class="streak"><span id="streak">0</span><small id="streaklabel">dagen op rij</small></div>
@@ -613,6 +631,10 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
     var plan = planAt(t);
 
     $("saved").textContent = fmt.format(saved);
+    var pr = $("potrange"), pn = $("potnum");
+    if (document.activeElement !== pr) { pr.value = Math.max(0, Math.min(7000, Math.round(saved))); }
+    pr.style.setProperty("--pct", (Math.max(0, Math.min(7000, saved)) / 70) + "%");
+    if (document.activeElement !== pn) pn.value = Math.round(saved * 100) / 100;
     $("ofline").textContent = "van " + fmt.format(GOAL) + " (" + Math.round(pct) + "%)";
     $("fill").style.width = pct + "%";
     $("plan").style.left = Math.min(100, plan / GOAL * 100) + "%";
@@ -918,6 +940,14 @@ nav.tabs button:focus-visible { outline-offset: -3px; }
     $("lname").value = ""; $("lamount").value = ""; $("ldate").value = "";
     save(); render();
   });
+  function setBalance(v) {
+    var itemsSum = state.items.reduce(function (a, i) { return a + i.amount; }, 0);
+    state.start = Math.round((Math.max(0, v) - itemsSum) * 100) / 100;
+    $("start").value = state.start;
+    save(); render();
+  }
+  $("potrange").addEventListener("input", function () { setBalance(parseFloat(this.value) || 0); });
+  $("potnum").addEventListener("change", function () { setBalance(parseAmt(this.value)); });
   $("checkin").addEventListener("click", function () {
     var k = today(); var key = k.getFullYear() + "-" + String(k.getMonth() + 1).padStart(2, "0") + "-" + String(k.getDate()).padStart(2, "0");
     if (state.checkins.indexOf(key) < 0) { state.checkins.push(key); if (state.checkins.length > 400) state.checkins = state.checkins.slice(-400); save(); render(); }
